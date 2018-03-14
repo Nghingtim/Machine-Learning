@@ -1,37 +1,65 @@
-## Welcome to GitHub Pages
+增强学习之蒙特卡罗法
+	在讲蒙特卡罗方法之前，我们有必要了解下它出现的历史以及为什么蒙特卡罗法可以用于增强学习。
+一、蒙特卡罗
+	蒙特卡罗，起源于世界著名的摩纳哥公国的一个赌场名。所以该算法在某种程度上就是跟概率有关的。蒙特卡罗法，又叫模拟统计方法，使用（伪）随机数来解决计算的问题，是一种重要的数值计算方法。
+	一个简单的例子可以解释蒙特卡罗方法，假设我们需要计算一个不规则图形的面积，那么图形的不规则程度和分析性计算（比如积分）的复杂程度是成正比的。而采用蒙特卡罗方法是怎么计算的呢？首先你把图形放到一个已知面积的方框内，然后假想你有一些豆子，把豆子均匀地朝这个方框内撒，散好后数这个图形之中有多少颗豆子，再根据图形内外豆子的比例来计算面积。当你的豆子越小，撒的越多的时候，结果就越精确。
+	因此，在非常复杂问题空间下，无法使用数据计算直接求解时，采用蒙特卡罗法是一种可行解。
+	那么，蒙特卡罗法怎么与增强学习关联上呢，并用于求解带有马尔科夫性的问题？
+上一篇内容我们介绍了通过动态规划能够解决已知environment的MDP问题，也就是已知S,A,P,R,γ，其中根据是否已知policy将问题又划分成了prediction和control问题，本质上来说这种known MDP问题已知environment即转移矩阵与reward函数，但是很多问题中environment是未知的，不清楚做出了某个action之后会变到哪一个state也不知道这个action好还是不好，也就是说不清楚environment体现的model是什么，在这种情况下需要解决的prediction和control问题就是Model-free prediction和Model-free control。显然这种新的问题只能从与environment的交互得到的experience中获取信息。
+	本篇要解决的是在未知environment下的Policy evaluation问题，即model-free Predection。在给定Policy下，每个状态state下的值函数问题。
+二、蒙特卡罗法
+蒙特卡罗法的要点：
+	episode将从某个起始状态开始执行到终止状态的一次遍历S1,A1,R2,…,Sk称为一个episode。已知很多的episodes。
+	蒙特卡洛强化学习是假设每个state的value function取值等于多个episodes的return Gt的平均值，它需要每个episode是完整的流程，即一定要执行到终止状态。
+	蒙特卡罗方法，不需要对环境的完整知识，仅需要经验就可以求解最优策略，这些经验可以在线获得或者根据某种模拟机制获得。
+	经验，其实就是训练样本。比如在初始状态s，遵循策略π，最终获得了总回报R，这就是一个样本。如果我们有许多这样的样本，就可以估计在状态s下，遵循策略π的期望回报，也就是状态值函数Vπ(s)了。
+	蒙特卡罗方法就是依靠样本的平均回报来解决增强学习问题的。
 
-You can use the [editor on GitHub](https://github.com/Nghingtim/Machine-Learning/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+蒙特卡罗法描述：
+	因此在本算法中，需要记录两个值，状态s被访问到的次数加1，即：
+N(s)=N(s)+1
+以及每次访问时累加return之和，即：
+S(s)=S(s)+Gt，
+遍历完所有的episodes之后，得到状态s下值函数取值为N次的均值：
+V(s)=S(s)/N(s).
+而这里有两种访问次数的记录方式，一种是在一个episode中只记录第一次访问到的s，一种是一个episode中每次访问到s都记录下来。从而针对一次新的访问，先次数加1，即：N(St)=N(St)+1，
+然后更新状态值函数，即：
+V(St)=V(St)+ (Gt−V(St))/ N(St). 
+在一些方法中也会将1/ N (St)设置成一个常数α，不随着访问次数增加，即
+V(St)=V(St)+α(Gt−V(St))…………(1)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+尽管蒙特卡罗方法和动态规划方法存在诸多不同，但是蒙特卡罗方法借鉴了很多动态规划中的思想。在动态规划中我们首先进行策略估计，计算特定策略π对应的Vπ和Qπ，然后进行策略改进，最终形成策略迭代。这些想法同样在蒙特卡罗方法中应用。
 
-### Markdown
+2.1蒙特卡罗策略估计(Monte Carlo Policy evalution)
+首先考虑用蒙特卡罗方法来学习状态值函数Vπ(s)。如上所述，估计Vπ(s)的一个明显的方法是对于所有到达过该状态的回报取平均值。这里又分为first-visit MC methods和every-visit MC methods。这里，我们只考虑first MC methods，即在一个episode内，我们只记录s的第一次访问，并对它取平均回报。
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+现在我们假设有如下一些样本，取折扣因子γ=1，即直接计算累积回报，则有
+ 
+图1.1 MC模拟样本
+根据first MC methods，对出现过状态s的episode的累积回报取均值，有:
+Vπ(s)≈ (2 + 1 – 5 + 4)/4 = 0.5
+容易知道，当我们经过无穷多的episode后，Vπ(s)的估计值将收敛于其真实值。
 
-```markdown
-Syntax highlighted code block
+2.2 动作值函数的MC估计(Mote Carlo Estimation of Action Values)
+在状态转移概率p(s'|a,s)已知的情况下，策略估计后有了新的值函数，我们就可以进行策略改进了，只需要看哪个动作能获得最大的期望累积回报就可以。然而在没有准确的状态转移概率的情况下这是不可行的。为此，我们需要估计动作值函数Qπ(s,a)。Qπ(s,a)的估计方法前面类似，即在状态s下采用动作a，后续遵循策略π获得的期望累积回报即为Qπ(s,a)，依然用平均回报来估计它。有了Q值，就可以进行策略改进了
+ 
+2.3持续探索(Maintaining Exploration)
+下面我们来探讨一下Maintaining Exploration的问题。前面我们讲到，我们通过一些样本来估计Q和V，并且在未来执行估值最大的动作。这里就存在一个问题，假设在某个确定状态s0下，能执行a0, a1, a2这三个动作，如果智能体已经估计了两个Q函数值，如Q(s0,a0), Q(s0,a1)，且Q(s0,a0)>Q(s0,a1)，那么它在未来将只会执行一个确定的动作a0。这样我们就无法更新Q(s0,a1)的估值和获得Q(s0,a2)的估值了。这样的后果是，我们无法保证Q(s0,a0)就是s0下最大的Q函数。
 
-# Header 1
-## Header 2
-### Header 3
+Maintaining Exploration的思想很简单，就是用soft policies来替换确定性策略，使所有的动作都有可能被执行。比如其中的一种方法是ε-greedy policy，即在所有的状态下，用1-ε的概率来执行当前的最优动作a0，ε的概率来执行其他动作a1, a2。这样我们就可以获得所有动作的估计值，然后通过慢慢减少ε值，最终使算法收敛，并得到最优策略。简单起见，在下面MC控制中，我们使用exploring start，即仅在第一步令所有的a都有一个非零的概率被选中。
 
-- Bulleted
-- List
+2.4蒙特卡罗控制(Mote Carlo Control)
+我们看下MC版本的策略迭代过程：
+ 
+根据前面的说法，值函数Qπ(s,a)的估计值需要在无穷多episode后才能收敛到其真实值。这样的话策略迭代必然是低效的。在上一篇DP中，我们了解值迭代算法，即每次都不用完整的策略估计，而仅仅使用值函数的近似值进行迭代，这里也用到了类似的思想。每次策略的近似值，然后用这个近似值来更新得到一个近似的策略，并最终收敛到最优策略。这个思想称为广义策略迭代。
+ 
+具体到MC control，就是在每个episode后都重新估计下动作值函数（尽管不是真实值），然后根据近似的动作值函数，进行策略更新。这是一个episode by episode的过程。
+一个采用exploring starts的Monte Carlo control算法，如下图所示，称为Monte Carlo ES。而对于所有状态都采用soft policy的版本，这里不再讨论。
+ 
+2.5 小结
+Monte Carlo方法的一个显而易见的好处就是我们不需要环境模型了，可以从经验中直接学到策略。它的另一个好处是，它对所有状态s的估计都是独立的，而不依赖与其他状态的值函数。在很多时候，我们不需要对所有状态值进行估计，这种情况下蒙特卡罗方法就十分适用。
+不过，现在增强学习中，直接使用MC方法的情况比较少，而较多的采用TD算法族。但是如同DP一样，MC方法也是增强学习的基础之一，因此依然有学习的必要。
 
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Nghingtim/Machine-Learning/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+参考：
+1、增强学习（四） ----- 蒙特卡罗方法(Monte Carlo Methods)
+2、强化学习公开课
